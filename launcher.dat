@@ -1,0 +1,68 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Case folders %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+DATADIR=C:\Users\juan.ramos\PLATAE
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Analysis %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+TYPEANALYSIS=SINGLETRAINING   % SINGLETRAINING, SENSANALYSIS, TRAINPREDICT, PREDICT, DATAGEN, PLOTACTIVATIONS 
+IMPORTMODEL=0
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Training parameters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Training parameters
+TRAINSIZE=0.80
+LEARNINGRATE=0.003
+L2REG=0.1
+L1REG=NONE
+DROPOUT=0.1
+EPOCHS=50
+BATCHSIZE=32
+ACTIVATION=LEAKYRELU  # NONE, RELU, ELU, LEAKYRELU, SWISH, SIGMOID, TANH
+# When sensitivity analysis, indicate activations separated by commas --> ACTIVATION=RELU,SWISH
+ADDAUGMENTED=0
+ADDAUGDATAID=1,2,4
+  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Dataset Augmentation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+AUGDATA=0
+AUGDATASIZE=1
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Image processing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%IMAGERESIZE=(50,30)  % (width, height)
+IMAGERESIZE=(150,100)  % (width, height)
+%IMAGERESIZE=(600,400)  % (width, height)
+% Rotation
+ROTATION=0
+ROTATIONCENTER=(NONE,NONE)
+ROTATIONANGLE=5
+% Zoom
+ZOOM=0
+ZOOMFACTOR=4.0
+% Translation
+TRANSLATION=0
+TRANSLATIONDIST=(50,0)
+% Filter
+FILTER=0
+% FILTERTYPE: GAUSSIAN, MEDIAN, BILATERAL, EMBOSS, SOBEL
+FILTERTYPE=GAUSSIAN
+FILTERPARAM=(SIZE,8,SIGMA,20)
+%FILTERPARAM=(D,20,SIGMACOLOR,5,SIGMASPACE,3)
+% Flip
+FLIP=1
+FLIPTYPE=HORIZONTAL
+%FLIPTYPE=VERTICAL
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Activation plotting  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+NCOLS=3
+ROWS2COLS=2
+NSAMPLESACT=3
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Prediction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+DATAPREDDIR=C:\Users\juan.ramos\PLATAE\Datasets\Dataset_test
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
