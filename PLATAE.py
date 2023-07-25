@@ -78,12 +78,9 @@ class ShockWaveScanner:
                         'predict': self.predict_on_test_set,
                         }
         arguments_list = {
-                        'singletraining': [bool(self.parameters.training_parameters['addaugdata'][0]),
-                                           self.parameters.training_parameters['addaugdata'][1]],
-                        'sensanalysis': [bool(self.parameters.training_parameters['addaugdata'][0]),
-                                         self.parameters.training_parameters['addaugdata'][1]],
-                        'trainpredict': [bool(self.parameters.training_parameters['addaugdata'][0]),
-                                          self.parameters.training_parameters['addaugdata'][1]],
+                        'singletraining': [],
+                        'sensanalysis': [],
+                        'trainpredict': [],
                         'datagen': [],
                         'plotactivations': [],
                         'predict': [],
@@ -93,7 +90,7 @@ class ShockWaveScanner:
         fun_args = arguments_list[analysis_ID]
         F(*fun_args)
 
-    def sensitivity_analysis_on_training(self, add_augmented=False, augdataset_ID=1):
+    def sensitivity_analysis_on_training(self):
 
         case_dir = self.case_dir
         img_dims = self.parameters.img_size
@@ -115,7 +112,7 @@ class ShockWaveScanner:
         self.export_model(sens_variable)
         self.export_nn_log()
 
-    def singletraining(self, add_augmented=False, augdataset_ID=1):
+    def singletraining(self):
 
         case_dir = self.case_dir
         img_dims = self.parameters.img_size
@@ -123,17 +120,25 @@ class ShockWaveScanner:
         batch_size = self.parameters.training_parameters['batch_size']
 
         self.datasets.data_train, self.datasets.data_cv, self.datasets.data_test = \
-        dataset_processing.get_datasets(case_dir,img_dims,train_size,add_augmented,augdataset_ID)
+        dataset_processing.get_datasets(case_dir,img_dims,train_size)
+
         self.datasets.dataset_train, self.datasets.dataset_cv, self.datasets.dataset_test = \
         dataset_processing.get_tensorflow_datasets(self.datasets.data_train,self.datasets.data_cv,self.datasets.data_test,batch_size)
 
         if self.model.imported == False:
             self.train_model()
         self.export_model_performance()
+        '''
+        idx = 10
+        x = self.datasets.data_train[0][idx,:,:,:].astype('float32')
+        print('y = ',self.datasets.data_train[1][idx])
+        Model_r, _ = self.reconstruct_model()
+        print('Output: ',Model_r.predict(np.expand_dims(x,axis=0)))
+        '''
         self.export_model()
         self.export_nn_log()
         
-    def trainpredict(self, add_augmented=False, augdataset_ID=1):
+    def trainpredict(self):
         
         # Training
         case_dir = self.case_dir
@@ -223,10 +228,10 @@ class ShockWaveScanner:
         # Set storage folder for augmented dataset
         case_dir = self.case_dir
         img_dims = self.parameters.img_size
-        augmented_dataset_dir = os.path.join(case_dir,'Datasets','Datasets_augmented')
+        augmented_dataset_dir = os.path.join(case_dir,'Datasets','Dataset_augmented')
 
         # Unpack data
-        X, y = dataset_processing.set_dataset(case_dir,img_dims)
+        X, y = dataset_processing.set_dataset(case_dir,img_dims,dataset_foldername='Dataset_to_augment')
         # Generate new dataset
         data_augmenter = dataset_augmentation.datasetAugmentationClass(X,y,transformations,augmented_dataset_size,augmented_dataset_dir)
         data_augmenter.transform_images()
@@ -244,9 +249,7 @@ class ShockWaveScanner:
         image_shape = self.datasets.dataset_train.element_spec[0].shape[1:3]
         activation = self.parameters.training_parameters['activation']
 
-        #Model = models.slice_scanner_lenet_model
-        Model = models.slice_scanner_simple_cnn_model
-        #Model = models.slice_scanner_inception_model
+        Model = models.slice_scanner_cnn_model
 
         self.model.Model = []
         self.model.History = []
@@ -308,14 +311,7 @@ class ShockWaveScanner:
         os.makedirs(results_dir)
 
         metrics_functions = {
-            'accuracy': tf.keras.metrics.BinaryAccuracy(),
-            'recall': tf.keras.metrics.Recall(),
-            'precision': tf.keras.metrics.Precision(),
-            'tp': tf.keras.metrics.TruePositives(),
-            'tn': tf.keras.metrics.TrueNegatives(),
-            'fp': tf.keras.metrics.FalsePositives(),
-            'fn': tf.keras.metrics.FalseNegatives(),
-            'AUC': tf.keras.metrics.AUC(),
+            'accuracy': tf.keras.metrics.CategoricalAccuracy(),
         }
 
         pred_cases = [folder for folder in os.listdir(pred_dir) if folder.startswith('Dataset')]
@@ -414,6 +410,9 @@ class ShockWaveScanner:
                 loss_data = np.vstack((list(epochs), loss_train, loss_cv)).T
                 loss = pd.DataFrame(columns=['Epoch', 'Training', 'CV'], data=loss_data)
                 loss.to_csv(os.path.join(storage_dir, loss_filename), index=False, sep=';', decimal='.')
+
+                with open(os.path.join(storage_dir,'historyDict'),'wb') as file_pi:
+                    pickle.dump(h.history,file_pi)
 
     def export_model(self, sens_var=None):
 
@@ -532,9 +531,6 @@ class ShockWaveScanner:
             training['BATCH SIZE'] = parameters.training_parameters['batch_size']
             training['OPTIMIZER'] = [model.optimizer._name for model in model.Model]
             training['METRICS'] = [model.metrics_names[-1] if model.metrics_names != None else None for model in model.Model]
-            training['DATASET_AUGMENTATION'] = bool(self.parameters.training_parameters['addaugdata'][0])
-            if training['DATASET_AUGMENTATION'] == 1:
-                training['DATASET_AUGMENTATION_ID'] = self.parameters.training_parameters['addaugdata'][1]
 
             analysis = OrderedDict()
             analysis['CASE ID'] = parameters.analysis['case_ID']
