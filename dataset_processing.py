@@ -23,7 +23,17 @@ def preprocess_data(im_tilde, label):
 
     return im_tilde, label
 
+def standardize_image_size(X, img_dims):
 
+    m = X.shape[0]
+    X_resized = np.zeros((m,img_dims[1],img_dims[0],3),dtype='uint8')
+    for i in range(m):
+        if X[i].shape[0:2] != (img_dims[1],img_dims[0]):
+            X_resized[i] = ImageTransformer.resize(X[i],img_dims)
+        else:
+            X_resized[i] = X[i]
+
+    return X_resized
 def set_dataset(case_dir, img_dims, dataset_foldername):
 
     datasets_dir = os.path.join(case_dir,'Datasets',dataset_foldername)
@@ -41,27 +51,27 @@ def set_dataset(case_dir, img_dims, dataset_foldername):
         # Generate X,y datasets
         m = len(samples_path)
         x = np.zeros((m,img_dims[1],img_dims[0],3),dtype='uint8')
-        y = np.zeros((m,),dtype=int)
+        y = np.zeros((m,),dtype='uint8')
         for i,sample in enumerate(samples_path):
             # X-array storage
             img = cv.imread(sample)
             x[i,:,:,:] = ImageTransformer.resize(img,img_dims)
             # Label storage
-            y[i] = labels[i]
+            y[i] = labels[i] - 1
 
         x_cont.append(x)
         y_cont.append(y)
 
     m = [item.shape[0] for item in x_cont]
     X = np.zeros([sum(m),*x.shape[1:]],dtype='uint8')
-    Y = np.zeros([sum(m),],dtype=int)
+    Y = np.zeros([sum(m),],dtype='uint8')
     for i in range(len(m)):
         X[sum(m[0:i]):sum(m[0:i+1]),:,:,:] = x_cont[i]
         Y[sum(m[0:i]):sum(m[0:i+1]),] = y_cont[i]
 
     return X, Y
 
-def read_preset_datasets(case_dir, dataset_ID=None, return_filepaths=False):
+def read_preset_datasets(case_dir, img_dims, dataset_ID=None, return_filepaths=False):
 
     if dataset_ID == None:
         dataset_dir = [case_dir]
@@ -71,20 +81,27 @@ def read_preset_datasets(case_dir, dataset_ID=None, return_filepaths=False):
     X = []
     y = []
     for folder in dataset_dir:
-        if os.path.exists(folder):
-            files = [os.path.join(folder,file) for file in os.listdir(folder)]
-            for i,file in enumerate(files):
-                X.append(cv.imread(file))
-                label = re.search('\w+\_\d+\_y\=(\d).*',os.path.basename(file))
-                y.append(label)
-        else:
-            X = None
-            y = None
-    X = np.array(X,dtype='uint8')
-    y = np.array(y,dtype=int)
+        f = open(os.path.join(folder,'labels.dat'))
+        data = f.read()
+        # Read labels
+        labels = [int(label) for label in re.findall('\n*.*(\d)\n*',data)]
+        # Read samples
+        samples = re.findall('\n*(.*),\d\n*', data)
+        samples_path = [os.path.join(folder,sample) for sample in samples]
+
+        # Generate X,y datasets
+        m = len(samples_path)
+        X = np.zeros((m,img_dims[1],img_dims[0],3),dtype='uint8')
+        y = np.zeros((m,), dtype=int)
+        for i, sample in enumerate(samples_path):
+            # X-array storage
+            img = cv.imread(sample)
+            X[i,:,:,:] = ImageTransformer.resize(img,img_dims)
+            # Label storage
+            y[i] = labels[i] - 1
 
     if return_filepaths:
-        return X, y, files
+        return X, y, samples
     else:
         return X, y
 
@@ -127,6 +144,6 @@ def get_tensorflow_datasets(data_train, data_cv, data_test, batch_size=32):
 
     dataset_train = create_dataset_pipeline(data_train,is_train=True,batch_size=batch_size)
     dataset_cv = create_dataset_pipeline(data_cv,is_train=False,batch_size=1)
-    dataset_test = preprocess_data_tf(data_test[0],tf.one_hot(data_test[1],depth=1))
+    dataset_test = preprocess_data_tf(data_test[0],tf.one_hot(data_test[1],depth=9))
     
     return dataset_train, dataset_cv, dataset_test

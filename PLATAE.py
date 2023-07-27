@@ -16,7 +16,7 @@ import dataset_augmentation
 import reader
 import postprocessing
 
-class ShockWaveScanner:
+class PLATAE:
 
     def __init__(self, launch_file, check_model=False):
 
@@ -119,6 +119,14 @@ class ShockWaveScanner:
         train_size = self.parameters.training_parameters['train_size']
         batch_size = self.parameters.training_parameters['batch_size']
 
+        '''
+        fashion_mnist = tf.keras.datasets.fashion_mnist
+        self.datasets.mnist_data_train, data_val = fashion_mnist.load_data()
+        X_cv, X_test, y_cv, y_test = train_test_split(data_val[0],data_val[1],train_size=0.75,shuffle=True)
+        self.datasets.mnist_data_cv = (X_cv, y_cv)
+        self.datasets.mnist_data_test = (X_test, y_test)
+        img_dims = (28,28)
+        '''
         self.datasets.data_train, self.datasets.data_cv, self.datasets.data_test = \
         dataset_processing.get_datasets(case_dir,img_dims,train_size)
 
@@ -249,7 +257,8 @@ class ShockWaveScanner:
         image_shape = self.datasets.dataset_train.element_spec[0].shape[1:3]
         activation = self.parameters.training_parameters['activation']
 
-        Model = models.slice_scanner_cnn_model
+        Model = models.vehicle_detection_alexnet_model
+        #Model = models.vehicle_detection_cnn_model
 
         self.model.Model = []
         self.model.History = []
@@ -299,7 +308,6 @@ class ShockWaveScanner:
 
         img_dims = self.parameters.img_size
         pred_dir = self.parameters.prediction['dir']
-        threshold = self.parameters.prediction['threshold']
 
         # Import model
         self.model.imported = True
@@ -313,30 +321,25 @@ class ShockWaveScanner:
         metrics_functions = {
             'accuracy': tf.keras.metrics.CategoricalAccuracy(),
         }
+        metrics = dict.fromkeys(metrics_functions)
 
-        pred_cases = [folder for folder in os.listdir(pred_dir) if folder.startswith('Dataset')]
-        for pred_case in pred_cases:
-            metrics = dict.fromkeys(metrics_functions)
+        X_test, y_test, paths_test = dataset_processing.read_preset_datasets(os.path.join(pred_dir),img_dims,return_filepaths=True)
+        X_test, y_test = dataset_processing.preprocess_data(X_test,y_test)
+        logits = Model.predict(X_test)
+        y_pred = np.array([np.argmax(logit) for logit in logits],dtype=int)
 
-            X_test, y_test, paths_test = dataset_processing.read_preset_datasets(os.path.join(pred_dir,pred_case),return_filepaths=True)
-            X_test = dataset_processing.standardize_image_size(X_test,img_dims)
-            X_test, y_test = dataset_processing.preprocess_data(X_test,y_test)
-            logits = Model.predict(X_test)
-            m_test = logits.shape[0]
-            y_hat = np.array([1 if logit > threshold else 0 for logit in logits])
-            for key in metrics.keys():
-                metric_function = metrics_functions[key]
-                metric_function.update_state(y_test,logits)
-                metrics[key] = metric_function.result().numpy()
-            metrics['F1'] = 2*metrics['precision']*metrics['recall']/(metrics['precision']+metrics['recall'])
+        for key in metrics.keys():
+            metric_function = metrics_functions[key]
+            metric_function.update_state(y_test,y_pred)
+            metrics[key] = metric_function.result().numpy()
 
-            metrics_name = list(metrics.keys())
-            metrics_data = list(metrics.values())
-            metrics_df = pd.DataFrame(index=metrics_name,columns=['Pred'],data=metrics_data)
-            metrics_df.to_csv(os.path.join(results_dir,'%s_model_pred_metrics.csv' %pred_case),sep=';',decimal='.')
+        metrics_name = list(metrics.keys())
+        metrics_data = list(metrics.values())
+        metrics_df = pd.DataFrame(index=metrics_name,columns=['Pred'],data=metrics_data)
+        metrics_df.to_csv(os.path.join(results_dir,'Model_pred_metrics.csv'),sep=';',decimal='.')
 
-            paths_df = pd.DataFrame(index=paths_test,columns=['Ground_truth','Prediction'],data=np.array([y_test,y_hat]).T)
-            paths_df.to_csv(os.path.join(results_dir,'%s_model_predictions.csv' %pred_case),sep=';',decimal='.')
+        paths_df = pd.DataFrame(index=paths_test,columns=['Ground_truth','Prediction'],data=np.array([y_test,y_pred]).T)
+        paths_df.to_csv(os.path.join(results_dir,'Model_predictions.csv'),sep=';',decimal='.')
 
     def export_model_performance(self, sens_var=None):
 
@@ -411,8 +414,6 @@ class ShockWaveScanner:
                 loss = pd.DataFrame(columns=['Epoch', 'Training', 'CV'], data=loss_data)
                 loss.to_csv(os.path.join(storage_dir, loss_filename), index=False, sep=';', decimal='.')
 
-                with open(os.path.join(storage_dir,'historyDict'),'wb') as file_pi:
-                    pickle.dump(h.history,file_pi)
 
     def export_model(self, sens_var=None):
 
@@ -604,5 +605,5 @@ class ShockWaveScanner:
 
 if __name__ == '__main__':
     launcher = r'C:\Users\juan.ramos\PLATAE\Scripts\launcher.dat'
-    sw_scanner = ShockWaveScanner(launcher,check_model=False)
+    sw_scanner = PLATAE(launcher,check_model=False)
     sw_scanner.launch_analysis()
