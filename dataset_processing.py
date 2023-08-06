@@ -15,13 +15,13 @@ def preprocess_data_tf(im, label):
 
     return im, label
 
-def preprocess_data(im_tilde, label):
+def preprocess_data(im, label):
 
-    im_tilde = im_tilde.astype(np.float32)
-    im_tilde = im_tilde/127.5
-    im_tilde = im_tilde - 1
+    im = im.astype(np.float32)
+    im = im/127.5
+    im = im - 1
 
-    return im_tilde, label
+    return im, label
 
 def standardize_image_size(X, img_dims):
 
@@ -71,7 +71,7 @@ def set_dataset(case_dir, img_dims, dataset_foldername):
 
     return X, Y
 
-def read_preset_datasets(case_dir, img_dims, dataset_ID=None, return_filepaths=False):
+def read_test_datasets(case_dir, img_dims, dataset_ID=None, return_filepaths=False):
 
     if dataset_ID == None:
         dataset_dir = [case_dir]
@@ -81,7 +81,7 @@ def read_preset_datasets(case_dir, img_dims, dataset_ID=None, return_filepaths=F
     X = []
     y = []
     for folder in dataset_dir:
-        f = open(os.path.join(folder,'labels.dat'))
+        f = open(os.path.join(folder,'labels_test.dat'))
         data = f.read()
         # Read labels
         labels = [int(label) for label in re.findall('\n*.*(\d)\n*',data)]
@@ -127,6 +127,7 @@ def get_datasets(case_dir, img_dims, train_size):
     return data_train, data_cv, data_test
 
 def create_dataset_pipeline(dataset, is_train=True, num_threads=8, prefetch_buffer=100, batch_size=32):
+
     X, y = dataset
     y_oh = tf.one_hot(y,depth=9)
     dataset_tensor = tf.data.Dataset.from_tensor_slices((X, y_oh))

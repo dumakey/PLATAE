@@ -45,7 +45,8 @@ def conv2D_block(X, num_channels, f, p, s, dropout, **kwargs):
     return net
 
 def dense_layer(X, units, activation, dropout, l1_reg, l2_reg):
-    net = tf.keras.layers.Dense(units=units,activation=activation,kernel_regularizer=tf.keras.regularizers.L1L2(l1=l1_reg,l2=l2_reg))(X)
+
+    net = tf.keras.layers.Dense(units=units,activation=None,kernel_regularizer=tf.keras.regularizers.L1L2(l1=l1_reg,l2=l2_reg))(X)
     net = tf.keras.layers.BatchNormalization()(net)
     if activation == 'leakyrelu':
         rate = 0.1
@@ -73,7 +74,7 @@ def get_padding(f,s,nin,nout):
 
 def vehicle_detection_alexnet_model(image_shape, alpha, l2_reg=0.0, l1_reg=0.0, dropout=0.0, activation='relu'):
 
-    input_shape = tuple(image_shape.as_list() + [3])
+    input_shape = (image_shape[1],image_shape[0],3)
     X_input = tf.keras.layers.Input(shape=input_shape)
     net = conv2D_block(X_input,num_channels=96,f=11,p=0,s=4,dropout=dropout,kwargs={'l2_reg':l2_reg,'l1_reg':l1_reg,'activation':activation})
     net = tf.keras.layers.MaxPool2D(pool_size=3,strides=2)(net)
@@ -99,7 +100,7 @@ def vehicle_detection_alexnet_model(image_shape, alpha, l2_reg=0.0, l1_reg=0.0, 
 
 def vehicle_detection_cnn_model(image_shape, alpha, l2_reg=0.0, l1_reg=0.0, dropout=0.0, activation='relu'):
 
-    input_shape = tuple(image_shape.as_list() + [3])
+    input_shape = (image_shape[1],image_shape[0],3)
     X_input = tf.keras.layers.Input(shape=input_shape)
     net = conv2D_block(X_input,num_channels=17,f=3,p=1,s=1,dropout=dropout,kwargs={'l2_reg':l2_reg,'l1_reg':l1_reg,'activation':activation})
     net = tf.keras.layers.MaxPool2D(pool_size=2,strides=2)(net)
@@ -110,10 +111,9 @@ def vehicle_detection_cnn_model(image_shape, alpha, l2_reg=0.0, l1_reg=0.0, drop
     net = conv2D_block(net,num_channels=87,f=3,p=1,s=1,dropout=dropout,kwargs={'l2_reg':l2_reg,'l1_reg':l1_reg,'activation':activation})
     net = tf.keras.layers.MaxPool2D(pool_size=2,strides=2)(net)
     net = conv2D_block(net,num_channels=87,f=3,p=1,s=1,dropout=dropout,kwargs={'l2_reg':l2_reg,'l1_reg':l1_reg,'activation':activation})
-    net = tf.keras.layers.MaxPool2D(pool_size=2,strides=2)(net)
     net = tf.keras.layers.Dropout(dropout)(net)
     net = tf.keras.layers.Flatten()(net)
-    net = dense_layer(net,512,activation,dropout,l1_reg,l2_reg)
+    net = dense_layer(net,1024,activation,dropout,l1_reg,l2_reg)
     net = tf.keras.layers.Dense(units=9,activation='softmax',kernel_regularizer=tf.keras.regularizers.L1L2(l1=l1_reg,l2=l2_reg))(net)
     model = tf.keras.Model(inputs=X_input,outputs=net,name='CNNScanner')
     model.summary()

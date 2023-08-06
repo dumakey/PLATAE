@@ -18,7 +18,7 @@ class datasetAugmentationClass:
             N = 1
         X_out_shape = (N,*X_in.shape[1:])
         self.X_out = np.zeros((X_out_shape),dtype='uint8')
-        self.y_out = np.zeros((N,9),dtype=int)
+        self.y_out = np.zeros((N,),dtype=int)
         self.dataset_dir = dataset_dir
 
     def transform_images(self):
@@ -29,7 +29,7 @@ class datasetAugmentationClass:
         for i, idx in enumerate(sampling_distribution):
             img_transformer = ImageTransformer(self.operations)
             self.X_out[i,:,:,:] = img_transformer.launch_transform_operation(self.X_in[idx,:,:,:])
-            label = np.argmax(self.y_in[idx])
+            label = self.y_in[idx] 
             if 'flip' in self.operations.keys():
                 if 'vertical' in self.operations['flip']:
                     flip_mapping = np.array([[0,1,2,3,4,5,6,7,8],[2,1,0,5,4,3,8,7,6]])
@@ -38,9 +38,8 @@ class datasetAugmentationClass:
                 new_label = flip_mapping[1,label]
             else:
                 new_label = label
-            self.y_out[i] = np.zeros((9,),dtype=int)
-            self.y_out[i][new_label] = 1
-            print()
+            self.y_out[i] = new_label
+            
 
     def export_augmented_dataset(self):
 
@@ -61,13 +60,13 @@ class datasetAugmentationClass:
         labels = np.zeros((m,),dtype=int)
         samples = [[]]*m
         for i,image in enumerate(self.X_out):
-            label = np.argmax(self.y_out[i]) + 1
-            image_filename = '{}_{}_y={}.jpg'.format(image_basename,(i+1),label)
+            label = self.y_out[i]
+            image_filename = '{}_{}_y={}.jpg'.format(image_basename,(i+1),label+1)
             filename = os.path.join(dataset_dir,image_filename)
             cv.imwrite(filename,image)
 
             # Save label data
-            labels[i] = label
+            labels[i] = label + 1
             samples[i] = image_filename
 
         # Export label data

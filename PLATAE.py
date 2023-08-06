@@ -102,7 +102,7 @@ class PLATAE:
 
         # Perform sensitivity analysis
         self.datasets.data_train, self.datasets.data_cv, self.datasets.data_test = \
-        dataset_processing.get_datasets(case_dir,img_dims,train_size,add_augmented,augdataset_ID)
+        dataset_processing.get_datasets(case_dir,img_dims,train_size)
         
         self.datasets.dataset_train, self.datasets.dataset_cv, self.datasets.dataset_test = \
         dataset_processing.get_tensorflow_datasets(self.datasets.data_train,self.datasets.data_cv,self.datasets.data_test,batch_size)
@@ -155,7 +155,7 @@ class PLATAE:
         batch_size = self.parameters.training_parameters['batch_size']
 
         self.datasets.data_train, self.datasets.data_cv, self.datasets.data_test = \
-        dataset_processing.get_datasets(case_dir,img_dims,train_size,add_augmented,augdataset_ID)
+        dataset_processing.get_datasets(case_dir,img_dims,train_size)
         self.datasets.dataset_train, self.datasets.dataset_cv, self.datasets.dataset_test = \
         dataset_processing.get_tensorflow_datasets(self.datasets.data_train,self.datasets.data_cv,self.datasets.data_test,batch_size)
         if self.model.imported == False:
@@ -188,8 +188,6 @@ class PLATAE:
         img_dims = self.parameters.img_size
         batch_size = self.parameters.training_parameters['batch_size']
         train_size = self.parameters.training_parameters['train_size']
-        add_augmented = bool(self.parameters.training_parameters['addaugdata'][0])
-        augdataset_ID = self.parameters.training_parameters['addaugdata'][1]
         n = self.parameters.activation_plotting['n_samples']
         figs_per_row = self.parameters.activation_plotting['n_cols']
         rows_to_cols_ratio = self.parameters.activation_plotting['rows2cols_ratio']
@@ -197,7 +195,7 @@ class PLATAE:
         
         # Generate datasets
         self.datasets.data_train, self.datasets.data_cv, self.datasets.data_test = \
-            dataset_processing.get_datasets(case_dir,img_dims,train_size,add_augmented,augdataset_ID)
+            dataset_processing.get_datasets(case_dir,img_dims,train_size)
         self.datasets.dataset_train, self.datasets.dataset_cv, self.datasets.dataset_test = \
         dataset_processing.get_tensorflow_datasets(self.datasets.data_train,self.datasets.data_cv,self.datasets.data_test,batch_size)
 
@@ -239,7 +237,7 @@ class PLATAE:
         augmented_dataset_dir = os.path.join(case_dir,'Datasets','Dataset_augmented')
 
         # Unpack data
-        X, y = dataset_processing.set_dataset(case_dir,img_dims,dataset_foldername='Dataset_to_augment')
+        X, y = dataset_processing.set_dataset(case_dir,img_dims,dataset_foldername='Datasets_to_augment')
         # Generate new dataset
         data_augmenter = dataset_augmentation.datasetAugmentationClass(X,y,transformations,augmented_dataset_size,augmented_dataset_dir)
         data_augmenter.transform_images()
@@ -254,11 +252,11 @@ class PLATAE:
         l2_reg = self.parameters.training_parameters['l2_reg']
         l1_reg = self.parameters.training_parameters['l1_reg']
         dropout = self.parameters.training_parameters['dropout']
-        image_shape = self.datasets.dataset_train.element_spec[0].shape[1:3]
+        image_shape = self.parameters.img_size
         activation = self.parameters.training_parameters['activation']
 
-        Model = models.vehicle_detection_alexnet_model
-        #Model = models.vehicle_detection_cnn_model
+        #Model = models.vehicle_detection_alexnet_model
+        Model = models.vehicle_detection_cnn_model
 
         self.model.Model = []
         self.model.History = []
@@ -306,6 +304,8 @@ class PLATAE:
 
     def predict_on_test_set(self):
 
+        tf.random.set_seed(0)
+
         img_dims = self.parameters.img_size
         pred_dir = self.parameters.prediction['dir']
 
@@ -319,11 +319,11 @@ class PLATAE:
         os.makedirs(results_dir)
 
         metrics_functions = {
-            'accuracy': tf.keras.metrics.CategoricalAccuracy(),
+            'accuracy': tf.keras.metrics.Accuracy(),
         }
         metrics = dict.fromkeys(metrics_functions)
 
-        X_test, y_test, paths_test = dataset_processing.read_preset_datasets(os.path.join(pred_dir),img_dims,return_filepaths=True)
+        X_test, y_test, paths_test = dataset_processing.read_test_datasets(os.path.join(pred_dir),img_dims,return_filepaths=True)
         X_test, y_test = dataset_processing.preprocess_data(X_test,y_test)
         logits = Model.predict(X_test)
         y_pred = np.array([np.argmax(logit) for logit in logits],dtype=int)
@@ -338,7 +338,7 @@ class PLATAE:
         metrics_df = pd.DataFrame(index=metrics_name,columns=['Pred'],data=metrics_data)
         metrics_df.to_csv(os.path.join(results_dir,'Model_pred_metrics.csv'),sep=';',decimal='.')
 
-        paths_df = pd.DataFrame(index=paths_test,columns=['Ground_truth','Prediction'],data=np.array([y_test,y_pred]).T)
+        paths_df = pd.DataFrame(index=paths_test,columns=['Ground_truth','Prediction'],data=np.array([y_test+1,y_pred+1]).T)
         paths_df.to_csv(os.path.join(results_dir,'Model_predictions.csv'),sep=';',decimal='.')
 
     def export_model_performance(self, sens_var=None):
@@ -432,14 +432,12 @@ class PLATAE:
                 else:
                     storage_dir = os.path.join(self.case_dir,'Results',str(case_ID),'Model','{}={:.3f}'
                                                .format(sens_var[0],sens_var[1][i]))
-                model_json_name = 'SHOWDEC_model_{}_{}={}_arquitecture.json'.format(str(case_ID),sens_var[0],str(sens_var[1][i]))
-                model_weights_name = 'SHOWDEC_model_{}_{}={}_weights.h5'.format(str(case_ID),sens_var[0],str(sens_var[1][i]))
-                model_folder_name = 'SHOWDEC_model_{}_{}={}'.format(str(case_ID),sens_var[0],str(sens_var[1][i]))
+                model_weights_name = 'PLATAE_model_{}_{}={}_weights.h5'.format(str(case_ID),sens_var[0],str(sens_var[1][i]))
+                model_folder_name = 'PLATAE_model_{}_{}={}'.format(str(case_ID),sens_var[0],str(sens_var[1][i]))
             else:
                 storage_dir = os.path.join(self.case_dir,'Results',str(case_ID),'Model')
-                model_json_name = 'SHOWDEC_model_{}_arquitecture.json'.format(str(case_ID))
-                model_weights_name = 'SHOWDEC_model_{}_weights.h5'.format(str(case_ID))
-                model_folder_name = 'SHOWDEC_model_{}'.format(str(case_ID))
+                model_weights_name = 'PLATAE_model_{}_weights.h5'.format(str(case_ID))
+                model_folder_name = 'PLATAE_model_{}'.format(str(case_ID))
 
             if os.path.exists(storage_dir):
                 rmtree(storage_dir)
@@ -450,58 +448,22 @@ class PLATAE:
                 pickle.dump(self.model.History[i].history,f)
 
             # Save model
-            # Export model arquitecture to JSON file
-            model_json = self.model.Model[i].to_json()
-            with open(os.path.join(storage_dir,model_json_name),'w') as json_file:
-                json_file.write(model_json)
             self.model.Model[i].save(os.path.join(storage_dir,model_folder_name.format(str(case_ID))))
-
             # Export model weights to HDF5 file
             self.model.Model[i].save_weights(os.path.join(storage_dir,model_weights_name))
-
-    def reconstruct_model_old(self):
-
-        storage_dir = os.path.join(self.case_dir,'Results','pretrained_model')
-        try:
-            json_filename = [file for file in os.listdir(storage_dir) if file.endswith('.json')][0]
-            json_file = open(os.path.join(storage_dir,json_filename),'r')
-            loaded_model_json = json_file.read()
-            json_file.close()
-
-            Model = tf.keras.models.model_from_json(loaded_model_json)
-        except:
-            tf.config.run_functions_eagerly(True) # Enable eager execution
-            try:
-                model_folder = next(os.walk(storage_dir))[1][0]
-            except:
-                print('There is no model stored in the folder')
-
-            Model = tf.keras.models.load_model(os.path.join(storage_dir,model_folder))
-            tf.config.run_functions_eagerly(False) # Disable eager execution
-
-        return Model
 
     def reconstruct_model(self, mode='train'):
 
         storage_dir = os.path.join(self.case_dir,'Results','pretrained_model')
-        try:
-            json_filename = [file for file in os.listdir(storage_dir) if file.endswith('.json')][0]
-            json_file = open(os.path.join(storage_dir,json_filename),'r')
-            loaded_model_json = json_file.read()
-            json_file.close()
+        casedata = reader.read_case_logfile(os.path.join(storage_dir,'PLATAE.log'))
+        img_dim = casedata.img_size
+        alpha = casedata.training_parameters['learning_rate']
+        activation = casedata.training_parameters['activation']
 
-            Model = tf.keras.models.model_from_json(loaded_model_json)
-
-        except:
-            casedata = reader.read_case_logfile(os.path.join(storage_dir,'SHOWDEC.log'))
-            img_dim = casedata.img_size
-            alpha = casedata.training_parameters['learning_rate']
-            activation = casedata.training_parameters['activation']
-
-            # Load weights into new model
-            Model = models.slice_scanner_lenet_model(img_dim,alpha,0.0,0.0,0.0,activation)
-            weights_filename = [file for file in os.listdir(storage_dir) if file.endswith('.h5')][0]
-            Model.load_weights(os.path.join(storage_dir,weights_filename))
+        # Load weights into new model
+        Model = models.vehicle_detection_cnn_model(img_dim,alpha,0.0,0.0,0.0,activation)
+        weights_filename = [file for file in os.listdir(storage_dir) if file.endswith('.h5')][0]
+        Model.load_weights(os.path.join(storage_dir,weights_filename))
 
         # Reconstruct history
         class history_container:
@@ -558,8 +520,8 @@ class PLATAE:
                     storage_folder = os.path.join(self.case_dir,'Results',str(case_ID),'Model','{}={}'.format(varname,value))
                 else:
                     storage_folder = os.path.join(self.case_dir,'Results',str(case_ID),'Model','{}={:.3f}'.format(varname,value))
-                with open(os.path.join(storage_folder,'SHOWDEC.log'),'w') as f:
-                    f.write('SHOWDEC log file\n')
+                with open(os.path.join(storage_folder,'PLATAE.log'),'w') as f:
+                    f.write('PLATAE log file\n')
                     f.write('==================================================================================================\n')
                     f.write('->ANALYSIS\n')
                     for item in analysis.items():
@@ -582,8 +544,8 @@ class PLATAE:
             training, analysis, architecture = update_log(self.parameters,self.model)
             case_ID = parameters.analysis['case_ID']
             storage_folder = os.path.join(self.case_dir,'Results',str(case_ID))
-            with open(os.path.join(storage_folder,'Model','SHOWDEC.log'),'w') as f:
-                f.write('SHOWDEC log file\n')
+            with open(os.path.join(storage_folder,'Model','PLATAE.log'),'w') as f:
+                f.write('PLATAE log file\n')
                 f.write('==================================================================================================\n')
                 f.write('->ANALYSIS\n')
                 for item in analysis.items():

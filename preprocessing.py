@@ -139,12 +139,6 @@ class ImageTransformer:
         elif kernel_name == 'sharpen':
             kernel = np.array([[0,-1,0],[-1,5,-1],[0,-1,0]])
             filtered_image = cv.filter2D(image,-1,kernel)
-        elif kernel_name == 'emboss':
-            kernel = np.array([[-2,-1,0],[-1,1,1],[0,1,2]])
-            filtered_image = cv.filter2D(image,-1,kernel)
-        elif kernel_name == 'sobel':
-            kernel = np.array([[-1,0,1],[-2,0,2],[-1,0,1]])
-            filtered_image = cv.filter2D(image,-1,kernel)
         elif kernel_name == 'sepia':
             pass
             #kernel = np.array([[0.272,0.534,0.131],[0.349,0.686,0.168],[0.393,0.769,0.189]])

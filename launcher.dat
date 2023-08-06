@@ -6,8 +6,8 @@ DATADIR=C:\Users\juan.ramos\PLATAE
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Analysis %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-TYPEANALYSIS=PREDICT   % SINGLETRAINING, SENSANALYSIS, TRAINPREDICT, PREDICT, DATAGEN, PLOTACTIVATIONS 
-IMPORTMODEL=1
+TYPEANALYSIS=TRAINPREDICT   % SINGLETRAINING, SENSANALYSIS, TRAINPREDICT, PREDICT, DATAGEN, PLOTACTIVATIONS 
+IMPORTMODEL=0
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Training parameters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -17,7 +17,7 @@ LEARNINGRATE=0.005
 L2REG=0.01
 L1REG=NONE
 DROPOUT=0.1
-EPOCHS=50
+EPOCHS=1
 BATCHSIZE=32
 ACTIVATION=SWISH  # NONE, RELU, ELU, LEAKYRELU, SWISH, SIGMOID, TANH
 # When sensitivity analysis, indicate activations separated by commas --> ACTIVATION=RELU,SWISH
@@ -29,7 +29,7 @@ AUGDATASIZE=1
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Image processing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%IMAGERESIZE=(50,30)  % (width, height)
+%IMAGERESIZE=(30,20)  % (width, height)
 IMAGERESIZE=(150,150)  % (width, height)
 %IMAGERESIZE=(600,400)  % (width, height)
 % Rotation
@@ -56,7 +56,7 @@ FLIPTYPE=VERTICAL
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Activation plotting  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 NCOLS=3
-ROWS2COLS=2
+ROWS2COLS=1
 NSAMPLESACT=3
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Prediction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
